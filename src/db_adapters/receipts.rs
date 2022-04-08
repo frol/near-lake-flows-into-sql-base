@@ -11,7 +11,7 @@ use tracing::warn;
 
 /// Saves receipts to database
 pub(crate) async fn store_receipts(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     shards: &[near_indexer_primitives::IndexerShard],
     block_hash: &near_indexer_primitives::CryptoHash,
     block_timestamp: u64,
@@ -36,7 +36,7 @@ pub(crate) async fn store_receipts(
 }
 
 async fn store_chunk_receipts(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     receipts: &[near_indexer_primitives::views::ReceiptView],
     block_hash: &near_indexer_primitives::CryptoHash,
     chunk_hash: &near_indexer_primitives::CryptoHash,
@@ -126,7 +126,7 @@ async fn store_chunk_receipts(
 
 /// Looks for already created parent transaction hash for given receipts
 async fn find_tx_hashes_for_receipts(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     mut receipts: Vec<near_indexer_primitives::views::ReceiptView>,
     // TODO we need to add sort of retry logic, these vars could be helpful
     block_hash: &near_indexer_primitives::CryptoHash,
@@ -240,14 +240,14 @@ async fn find_tx_hashes_for_receipts(
 }
 
 async fn find_transaction_hashes_for_data_receipts(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     data_ids: &[String],
     receipts: &[near_indexer_primitives::views::ReceiptView],
 ) -> anyhow::Result<HashMap<crate::ReceiptOrDataId, crate::ParentTransactionHashString>> {
     let query = "SELECT action_receipt_output_data.output_data_id, receipts.originated_from_transaction_hash
                         FROM action_receipt_output_data JOIN receipts ON action_receipt_output_data.output_from_receipt_id = receipts.receipt_id
-                        WHERE action_receipt_output_data.output_data_id IN ".to_owned() + &crate::models::create_placeholder(data_ids.len())?;
-    let mut args = sqlx::mysql::MySqlArguments::default();
+                        WHERE action_receipt_output_data.output_data_id IN ".to_owned() + &crate::models::create_placeholder(&mut 1,data_ids.len())?;
+    let mut args = sqlx::postgres::PgArguments::default();
     data_ids.iter().for_each(|data_id| {
         args.add(data_id);
     });
@@ -292,13 +292,13 @@ async fn find_transaction_hashes_for_data_receipts(
 }
 
 async fn find_transaction_hashes_for_receipts_via_outcomes(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     action_receipt_ids: &[String],
 ) -> anyhow::Result<HashMap<crate::ReceiptOrDataId, crate::ParentTransactionHashString>> {
     let query = "SELECT execution_outcome_receipts.produced_receipt_id, receipts.originated_from_transaction_hash
                         FROM execution_outcome_receipts JOIN receipts ON execution_outcome_receipts.executed_receipt_id = receipts.receipt_id
-                        WHERE execution_outcome_receipts.produced_receipt_id IN ".to_owned() + &crate::models::create_placeholder(action_receipt_ids.len())?;
-    let mut args = sqlx::mysql::MySqlArguments::default();
+                        WHERE execution_outcome_receipts.produced_receipt_id IN ".to_owned() + &crate::models::create_placeholder(&mut 1,action_receipt_ids.len())?;
+    let mut args = sqlx::postgres::PgArguments::default();
     action_receipt_ids.iter().for_each(|data_id| {
         args.add(data_id);
     });
@@ -323,15 +323,15 @@ async fn find_transaction_hashes_for_receipts_via_outcomes(
 }
 
 async fn find_transaction_hashes_for_receipt_via_transactions(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     action_receipt_ids: &[String],
 ) -> anyhow::Result<HashMap<crate::ReceiptOrDataId, crate::ParentTransactionHashString>> {
     let query = "SELECT converted_into_receipt_id, transaction_hash
                         FROM transactions
                         WHERE converted_into_receipt_id IN "
         .to_owned()
-        + &crate::models::create_placeholder(action_receipt_ids.len())?;
-    let mut args = sqlx::mysql::MySqlArguments::default();
+        + &crate::models::create_placeholder(&mut 1,action_receipt_ids.len())?;
+    let mut args = sqlx::postgres::PgArguments::default();
     action_receipt_ids.iter().for_each(|data_id| {
         args.add(data_id);
     });
@@ -356,7 +356,7 @@ async fn find_transaction_hashes_for_receipt_via_transactions(
 }
 
 async fn store_receipt_actions(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     receipts: Vec<(usize, &near_indexer_primitives::views::ReceiptView)>,
     tx_hashes_for_receipts: &HashMap<ReceiptOrDataId, ParentTransactionHashString>,
     block_hash: &near_indexer_primitives::CryptoHash,
@@ -456,11 +456,11 @@ async fn store_receipt_actions(
 }
 
 async fn store_action_receipts(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     receipts: &[models::ActionReceipt],
 ) -> anyhow::Result<()> {
     for action_receipts_part in receipts.chunks(crate::db_adapters::CHUNK_SIZE_FOR_BATCH_INSERT) {
-        let mut args = sqlx::mysql::MySqlArguments::default();
+        let mut args = sqlx::postgres::PgArguments::default();
         let mut action_receipts_count = 0;
 
         action_receipts_part.iter().for_each(|action_receipt| {
@@ -476,11 +476,11 @@ async fn store_action_receipts(
 }
 
 async fn store_action_receipt_actions(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     receipts: &[models::ActionReceiptAction],
 ) -> anyhow::Result<()> {
     for action_receipts_part in receipts.chunks(crate::db_adapters::CHUNK_SIZE_FOR_BATCH_INSERT) {
-        let mut args = sqlx::mysql::MySqlArguments::default();
+        let mut args = sqlx::postgres::PgArguments::default();
         let mut action_receipts_count = 0;
 
         action_receipts_part.iter().for_each(|action_receipt| {
@@ -496,11 +496,11 @@ async fn store_action_receipt_actions(
 }
 
 async fn store_action_receipts_input_data(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     receipts: &[models::ActionReceiptInputData],
 ) -> anyhow::Result<()> {
     for action_receipts_part in receipts.chunks(crate::db_adapters::CHUNK_SIZE_FOR_BATCH_INSERT) {
-        let mut args = sqlx::mysql::MySqlArguments::default();
+        let mut args = sqlx::postgres::PgArguments::default();
         let mut action_receipts_count = 0;
 
         action_receipts_part.iter().for_each(|action_receipt| {
@@ -516,11 +516,11 @@ async fn store_action_receipts_input_data(
 }
 
 async fn store_action_receipts_output_data(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     receipts: &[models::ActionReceiptOutputData],
 ) -> anyhow::Result<()> {
     for action_receipts_part in receipts.chunks(crate::db_adapters::CHUNK_SIZE_FOR_BATCH_INSERT) {
-        let mut args = sqlx::mysql::MySqlArguments::default();
+        let mut args = sqlx::postgres::PgArguments::default();
         let mut action_receipts_count = 0;
 
         action_receipts_part.iter().for_each(|action_receipt| {
@@ -536,11 +536,11 @@ async fn store_action_receipts_output_data(
 }
 
 async fn store_data_receipts(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     receipts: &[models::DataReceipt],
 ) -> anyhow::Result<()> {
     for data_receipts_part in receipts.chunks(crate::db_adapters::CHUNK_SIZE_FOR_BATCH_INSERT) {
-        let mut args = sqlx::mysql::MySqlArguments::default();
+        let mut args = sqlx::postgres::PgArguments::default();
         let mut data_receipts_count = 0;
 
         data_receipts_part.iter().for_each(|data_receipt| {

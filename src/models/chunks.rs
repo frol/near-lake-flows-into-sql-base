@@ -30,7 +30,7 @@ impl Chunk {
         }
     }
 
-    pub fn add_to_args(&self, args: &mut sqlx::mysql::MySqlArguments) {
+    pub fn add_to_args(&self, args: &mut sqlx::postgres::PgArguments) {
         args.add(&self.included_in_block_hash);
         args.add(&self.chunk_hash);
         args.add(&self.shard_id);
@@ -41,10 +41,10 @@ impl Chunk {
     }
 
     pub fn get_query(chunks_count: usize) -> anyhow::Result<String> {
-        crate::models::create_query_with_placeholders(
-            "INSERT IGNORE INTO chunks VALUES",
+        Ok(crate::models::create_query_with_placeholders(
+            "INSERT INTO chunks VALUES",
             chunks_count,
             Chunk::field_count(),
-        )
+        )? + " ON CONFLICT DO NOTHING")
     }
 }

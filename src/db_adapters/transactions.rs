@@ -5,7 +5,7 @@ use itertools::Itertools;
 use crate::models;
 
 pub(crate) async fn store_transactions(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     shards: &[near_indexer_primitives::IndexerShard],
     block_hash: &near_indexer_primitives::CryptoHash,
     block_timestamp: u64,
@@ -35,7 +35,7 @@ pub(crate) async fn store_transactions(
 }
 
 async fn store_chunk_transactions(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     transactions: Vec<(
         usize,
         &near_indexer_primitives::IndexerTransactionWithOutcome,
@@ -53,7 +53,7 @@ async fn store_chunk_transactions(
         .iter()
         .chunks(crate::db_adapters::CHUNK_SIZE_FOR_BATCH_INSERT)
     {
-        let mut args = sqlx::mysql::MySqlArguments::default();
+        let mut args = sqlx::postgres::PgArguments::default();
         let mut transaction_count = 0;
         let mut receipts_cache_lock = receipts_cache.lock().await;
 

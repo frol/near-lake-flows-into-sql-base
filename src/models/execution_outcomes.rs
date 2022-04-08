@@ -41,7 +41,7 @@ impl ExecutionOutcome {
         }
     }
 
-    pub fn add_to_args(&self, args: &mut sqlx::mysql::MySqlArguments) {
+    pub fn add_to_args(&self, args: &mut sqlx::postgres::PgArguments) {
         args.add(&self.receipt_id);
         args.add(&self.executed_in_block_hash);
         args.add(&self.executed_in_block_timestamp);
@@ -70,17 +70,17 @@ pub struct ExecutionOutcomeReceipt {
 }
 
 impl ExecutionOutcomeReceipt {
-    pub fn add_to_args(&self, args: &mut sqlx::mysql::MySqlArguments) {
+    pub fn add_to_args(&self, args: &mut sqlx::postgres::PgArguments) {
         args.add(&self.executed_receipt_id);
         args.add(&self.index_in_execution_outcome);
         args.add(&self.produced_receipt_id);
     }
 
     pub fn get_query(execution_outcome_receipt_count: usize) -> anyhow::Result<String> {
-        crate::models::create_query_with_placeholders(
-            "INSERT IGNORE INTO execution_outcome_receipts VALUES",
+        Ok(crate::models::create_query_with_placeholders(
+            "INSERT INTO execution_outcome_receipts VALUES",
             execution_outcome_receipt_count,
             ExecutionOutcomeReceipt::field_count(),
-        )
+        )? + " ON CONFLICT DO NOTHING")
     }
 }

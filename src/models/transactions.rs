@@ -66,7 +66,7 @@ impl Transaction {
         }
     }
 
-    pub fn add_to_args(&self, args: &mut sqlx::mysql::MySqlArguments) {
+    pub fn add_to_args(&self, args: &mut sqlx::postgres::PgArguments) {
         args.add(&self.transaction_hash);
         args.add(&self.included_in_block_hash);
         args.add(&self.included_in_chunk_hash);
@@ -84,10 +84,10 @@ impl Transaction {
     }
 
     pub fn get_query(transactions_count: usize) -> anyhow::Result<String> {
-        crate::models::create_query_with_placeholders(
-            "INSERT IGNORE INTO transactions VALUES",
+        Ok(crate::models::create_query_with_placeholders(
+            "INSERT INTO transactions VALUES",
             transactions_count,
             Transaction::field_count(),
-        )
+        )? + " ON CONFLICT DO NOTHING")
     }
 }

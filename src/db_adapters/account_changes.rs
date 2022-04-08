@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 // todo recheck first block on mainnet. Looks like we miss the data in S3
 pub(crate) async fn store_account_changes(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     state_changes: &near_indexer_primitives::views::StateChangesView,
     block_hash: &near_indexer_primitives::CryptoHash,
     block_timestamp: u64,
@@ -26,7 +26,7 @@ pub(crate) async fn store_account_changes(
         .enumerate()
         .chunks(crate::db_adapters::CHUNK_SIZE_FOR_BATCH_INSERT)
     {
-        let mut args = sqlx::mysql::MySqlArguments::default();
+        let mut args = sqlx::postgres::PgArguments::default();
         let mut changes_count = 0;
 
         account_changes_part.for_each(|(i, mut account_change)| {

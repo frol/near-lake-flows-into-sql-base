@@ -1,10 +1,10 @@
 use crate::models;
 
 pub(crate) async fn store_block(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     block: &near_indexer_primitives::views::BlockView,
 ) -> anyhow::Result<()> {
-    let mut args = sqlx::mysql::MySqlArguments::default();
+    let mut args = sqlx::postgres::PgArguments::default();
     models::blocks::Block::from_block_view(block).add_to_args(&mut args);
     let query = models::blocks::Block::get_query(1)?;
     sqlx::query_with(&query, args).execute(pool).await?;

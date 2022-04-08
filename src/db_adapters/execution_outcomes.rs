@@ -4,7 +4,7 @@ use futures::future::try_join_all;
 use crate::models;
 
 pub(crate) async fn store_execution_outcomes(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     shards: &[near_indexer_primitives::IndexerShard],
     block_timestamp: u64,
     receipts_cache: crate::ReceiptsCache,
@@ -24,7 +24,7 @@ pub(crate) async fn store_execution_outcomes(
 
 /// Saves ExecutionOutcome to database and then saves ExecutionOutcomesReceipts
 pub async fn store_execution_outcomes_for_chunk(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     execution_outcomes: &[near_indexer_primitives::IndexerExecutionOutcomeWithReceipt],
     shard_id: near_indexer_primitives::types::ShardId,
     block_timestamp: u64,
@@ -81,7 +81,7 @@ pub async fn store_execution_outcomes_for_chunk(
     for execution_outcomes_part in
         outcome_models.chunks(crate::db_adapters::CHUNK_SIZE_FOR_BATCH_INSERT)
     {
-        let mut args = sqlx::mysql::MySqlArguments::default();
+        let mut args = sqlx::postgres::PgArguments::default();
         let mut execution_outcomes_count = 0;
 
         execution_outcomes_part
@@ -99,7 +99,7 @@ pub async fn store_execution_outcomes_for_chunk(
     for outcome_receipts_part in
         outcome_receipt_models.chunks(crate::db_adapters::CHUNK_SIZE_FOR_BATCH_INSERT)
     {
-        let mut args = sqlx::mysql::MySqlArguments::default();
+        let mut args = sqlx::postgres::PgArguments::default();
         let mut outcome_receipts_count = 0;
 
         outcome_receipts_part.iter().for_each(|outcome_receipt| {

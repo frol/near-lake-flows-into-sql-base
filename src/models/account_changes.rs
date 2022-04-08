@@ -79,7 +79,7 @@ impl AccountChange {
         })
     }
 
-    pub fn add_to_args(&self, args: &mut sqlx::mysql::MySqlArguments) {
+    pub fn add_to_args(&self, args: &mut sqlx::postgres::PgArguments) {
         args.add(&self.affected_account_id);
         args.add(&self.changed_in_block_timestamp);
         args.add(&self.changed_in_block_hash);
@@ -93,10 +93,10 @@ impl AccountChange {
     }
 
     pub fn get_query(account_changes_count: usize) -> anyhow::Result<String> {
-        crate::models::create_query_with_placeholders(
-            "INSERT IGNORE INTO account_changes VALUES",
+        Ok(crate::models::create_query_with_placeholders(
+            "INSERT INTO account_changes (affected_account_id, changed_in_block_timestamp, changed_in_block_hash, caused_by_transaction_hash, caused_by_receipt_id, update_reason, affected_account_nonstaked_balance, affected_account_staked_balance, affected_account_storage_usage, index_in_block) VALUES",
             account_changes_count,
             AccountChange::field_count(),
-        )
+        )? + " ON CONFLICT DO NOTHING")
     }
 }

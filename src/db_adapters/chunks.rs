@@ -2,7 +2,7 @@ use crate::models;
 use itertools::Itertools;
 
 pub(crate) async fn store_chunks(
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     shards: &[near_indexer_primitives::IndexerShard],
     block_hash: &near_indexer_primitives::CryptoHash,
 ) -> anyhow::Result<()> {
@@ -12,7 +12,7 @@ pub(crate) async fn store_chunks(
         .filter_map(|shard| shard.chunk.as_ref())
         .chunks(crate::db_adapters::CHUNK_SIZE_FOR_BATCH_INSERT)
     {
-        let mut args = sqlx::mysql::MySqlArguments::default();
+        let mut args = sqlx::postgres::PgArguments::default();
         let mut chunks_count = 0;
 
         chunks_part.for_each(|chunk| {

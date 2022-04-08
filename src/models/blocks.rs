@@ -31,7 +31,7 @@ impl Block {
         }
     }
 
-    pub fn add_to_args(&self, args: &mut sqlx::mysql::MySqlArguments) {
+    pub fn add_to_args(&self, args: &mut sqlx::postgres::PgArguments) {
         args.add(&self.block_height);
         args.add(&self.block_hash);
         args.add(&self.prev_block_hash);
@@ -42,10 +42,10 @@ impl Block {
     }
 
     pub fn get_query(blocks_count: usize) -> anyhow::Result<String> {
-        crate::models::create_query_with_placeholders(
-            "INSERT IGNORE INTO blocks VALUES",
+        Ok(crate::models::create_query_with_placeholders(
+            "INSERT INTO blocks VALUES",
             blocks_count,
             Block::field_count(),
-        )
+        )? + " ON CONFLICT DO NOTHING")
     }
 }

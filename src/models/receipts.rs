@@ -48,7 +48,7 @@ impl DataReceipt {
         }
     }
 
-    pub fn add_to_args(&self, args: &mut sqlx::mysql::MySqlArguments) {
+    pub fn add_to_args(&self, args: &mut sqlx::postgres::PgArguments) {
         args.add(&self.receipt_id);
         args.add(&self.included_in_block_hash);
         args.add(&self.included_in_chunk_hash);
@@ -62,11 +62,11 @@ impl DataReceipt {
     }
 
     pub fn get_query(items_count: usize) -> anyhow::Result<String> {
-        crate::models::create_query_with_placeholders(
-            "INSERT IGNORE INTO data_receipts VALUES",
+        Ok(crate::models::create_query_with_placeholders(
+            "INSERT INTO data_receipts VALUES",
             items_count,
             DataReceipt::field_count(),
-        )
+        )? + " ON CONFLICT DO NOTHING")
     }
 }
 
@@ -122,7 +122,7 @@ impl ActionReceipt {
         }
     }
 
-    pub fn add_to_args(&self, args: &mut sqlx::mysql::MySqlArguments) {
+    pub fn add_to_args(&self, args: &mut sqlx::postgres::PgArguments) {
         args.add(&self.receipt_id);
         args.add(&self.included_in_block_hash);
         args.add(&self.included_in_chunk_hash);
@@ -137,11 +137,11 @@ impl ActionReceipt {
     }
 
     pub fn get_query(items_count: usize) -> anyhow::Result<String> {
-        crate::models::create_query_with_placeholders(
-            "INSERT IGNORE INTO action_receipts VALUES",
+        Ok(crate::models::create_query_with_placeholders(
+            "INSERT INTO action_receipts VALUES",
             items_count,
             ActionReceipt::field_count(),
-        )
+        )? + " ON CONFLICT DO NOTHING")
     }
 }
 
@@ -179,10 +179,11 @@ impl ActionReceiptAction {
         }
     }
 
-    pub fn add_to_args(&self, args: &mut sqlx::mysql::MySqlArguments) {
+    pub fn add_to_args(&self, args: &mut sqlx::postgres::PgArguments) {
         args.add(&self.receipt_id);
         args.add(&self.index_in_action_receipt);
         args.add(&self.action_kind);
+        // todo does not work, should be json. But json does not work with pgarguments
         args.add(&self.args.to_string());
         args.add(&self.receipt_predecessor_account_id);
         args.add(&self.receipt_receiver_account_id);
@@ -190,11 +191,11 @@ impl ActionReceiptAction {
     }
 
     pub fn get_query(items_count: usize) -> anyhow::Result<String> {
-        crate::models::create_query_with_placeholders(
-            "INSERT IGNORE INTO action_receipt_actions VALUES",
+        Ok(crate::models::create_query_with_placeholders(
+            "INSERT INTO action_receipt_actions VALUES",
             items_count,
             ActionReceiptAction::field_count(),
-        )
+        )? + " ON CONFLICT DO NOTHING")
     }
 }
 
@@ -212,17 +213,17 @@ impl ActionReceiptInputData {
         }
     }
 
-    pub fn add_to_args(&self, args: &mut sqlx::mysql::MySqlArguments) {
+    pub fn add_to_args(&self, args: &mut sqlx::postgres::PgArguments) {
         args.add(&self.input_to_receipt_id);
         args.add(&self.input_data_id);
     }
 
     pub fn get_query(items_count: usize) -> anyhow::Result<String> {
-        crate::models::create_query_with_placeholders(
-            "INSERT IGNORE INTO action_receipt_input_data VALUES",
+        Ok(crate::models::create_query_with_placeholders(
+            "INSERT INTO action_receipt_input_data VALUES",
             items_count,
             ActionReceiptInputData::field_count(),
-        )
+        )? + " ON CONFLICT DO NOTHING")
     }
 }
 
@@ -245,17 +246,17 @@ impl ActionReceiptOutputData {
         }
     }
 
-    pub fn add_to_args(&self, args: &mut sqlx::mysql::MySqlArguments) {
+    pub fn add_to_args(&self, args: &mut sqlx::postgres::PgArguments) {
         args.add(&self.output_from_receipt_id);
         args.add(&self.output_data_id);
         args.add(&self.receiver_account_id);
     }
 
     pub fn get_query(items_count: usize) -> anyhow::Result<String> {
-        crate::models::create_query_with_placeholders(
-            "INSERT IGNORE INTO action_receipt_output_data VALUES",
+        Ok(crate::models::create_query_with_placeholders(
+            "INSERT INTO action_receipt_output_data VALUES",
             items_count,
             ActionReceiptOutputData::field_count(),
-        )
+        )? + " ON CONFLICT DO NOTHING")
     }
 }

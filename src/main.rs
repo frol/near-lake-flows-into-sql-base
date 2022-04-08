@@ -33,7 +33,9 @@ pub type ReceiptsCache =
 async fn main() -> anyhow::Result<()> {
     dotenv().ok();
 
-    let pool = sqlx::MySqlPool::connect(&env::var("DATABASE_URL")?).await?;
+    let pool = sqlx::postgres::PgPoolOptions::new()
+        .connect(&env::var("DATABASE_URL")?)
+        .await?;
     // TODO Error: while executing migrations: error returned from database: 1128 (HY000): Function 'near_indexer.GET_LOCK' is not defined
     // sqlx::migrate!().run(&pool).await?;
 
@@ -46,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
         //     start_block_height: 42376888 //42376923, // want to start from the first to fill in the cache correctly // 42376888
         s3_bucket_name: "near-lake-data-mainnet".to_string(),
         s3_region_name: "eu-central-1".to_string(),
-        start_block_height: 12117824, //12117820, //9823031, //9820214, // 9820210 9823031 12117827 data receipt
+        start_block_height: 9823031, //12117824, //12117820, //9823031, //9820214, // 9820210 9823031 12117827 data receipt
     };
     let stream = near_lake_framework::streamer(config);
 
@@ -69,14 +71,25 @@ async fn main() -> anyhow::Result<()> {
         })
         .buffer_unordered(1usize);
 
-    while let Some(_handle_message) = handlers.next().await {}
+    let mut time_now = std::time::Instant::now();
+    while let Some(handle_message) = handlers.next().await {
+        match handle_message {
+            Ok(_) => {}
+            Err(e) => {
+                return Err(anyhow::anyhow!(e));
+            }
+        }
+        let elapsed = time_now.elapsed();
+        println!("Elapsed: {:.3?}", elapsed);
+        time_now = std::time::Instant::now();
+    }
 
     Ok(())
 }
 
 async fn handle_streamer_message(
     streamer_message: near_lake_framework::near_indexer_primitives::StreamerMessage,
-    pool: &sqlx::Pool<sqlx::MySql>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     receipts_cache: ReceiptsCache,
 ) -> anyhow::Result<()> {
     // TODO: fault-tolerance

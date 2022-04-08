@@ -33,11 +33,13 @@ fn create_query_with_placeholders(
         return Err(anyhow::anyhow!("At least 1 item expected"));
     }
 
-    let placeholder = create_placeholder(fields_count)?;
-    // Generates `INSERT INTO table VALUES (?, ?, ?), (?, ?, ?)`
+    let mut start_num: usize = 1;
+    let placeholder = create_placeholder(&mut start_num, fields_count)?;
+    // Generates `INSERT INTO table VALUES ($1, $2), ($3, $4)`
     let mut res = query.to_owned() + " " + &placeholder;
     items_count -= 1;
     while items_count > 0 {
+        let placeholder = create_placeholder(&mut start_num, fields_count)?;
         res += ", ";
         res += &placeholder;
         items_count -= 1;
@@ -47,14 +49,16 @@ fn create_query_with_placeholders(
 }
 
 // Generates `(?, ?, ?)`
-pub fn create_placeholder(mut fields_count: usize) -> anyhow::Result<String> {
+pub fn create_placeholder(start_num: &mut usize, mut fields_count: usize) -> anyhow::Result<String> {
     if fields_count < 1 {
         return Err(anyhow::anyhow!("At least 1 field expected"));
     }
-    let mut item = "(?".to_owned();
+    let mut item = format!("(${}", start_num).to_owned();
+    *start_num += 1;
     fields_count -= 1;
     while fields_count > 0 {
-        item += ", ?";
+        item += &format!(", ${}", start_num);
+        *start_num += 1;
         fields_count -= 1;
     }
     item += ")";
